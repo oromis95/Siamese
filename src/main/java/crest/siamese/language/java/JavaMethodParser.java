@@ -17,16 +17,8 @@ import crest.siamese.language.MethodParser;
 import crest.siamese.settings.Settings;
 import org.apache.commons.io.FileUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.io.*;
+import java.util.*;
 
 public class JavaMethodParser implements MethodParser {
     private ArrayList<Method> methodList = new ArrayList<Method>();
@@ -109,7 +101,7 @@ public class JavaMethodParser implements MethodParser {
                         }
                     }
 
-                    new MethodVisitor().visit(cu, null);
+                    new MethodVisitor().visit(cu, FILE_PATH);
                     new ConstructorVisitor().visit(cu, null);
 
                 } catch (Throwable e) {
@@ -191,10 +183,37 @@ public class JavaMethodParser implements MethodParser {
             int end = -1;
             if (n.getBegin().isPresent()) begin = n.getBegin().get().line;
             if (n.getEnd().isPresent()) end = n.getEnd().get().line;
-            methodList.add(createNewMethod(n.getName().asString(), comment, n.toString(ppc), begin,
-                    end, paramsList, n.getDeclarationAsString()));
+            if (filterMethod(n.getName().asString()),arg){
+                System.out.println("UAAA FUNZIONA!");
+                methodList.add(createNewMethod(n.getName().asString(), comment, n.toString(ppc), begin,
+                        end, paramsList, n.getDeclarationAsString()));
+            }
+            System.out.println("ALMENO NON CRASHA");
             super.visit(n, arg);
         }
+    }
+
+
+    private boolean filterMethod(String functionName, String path) {
+        path = path.replace(".java", ".txt");
+        File f = new File(path);
+        if (f.exists() && !f.isDirectory()) {
+            try {
+                Scanner sc = new Scanner(f);
+                while (sc.hasNextLine()) {
+                    line = sc.nextLine();
+                    if (functionName.equals(line)) {
+                        System.out.println("QUESTI COMBACIANO " + functionName + line);
+                        return true;
+                    } else {
+                        return true;
+                    }
+                }
+            } catch (FileNotFoundException exception) {
+                return false;
+            }
+        }
+        return false;
     }
 
     /***
@@ -221,7 +240,7 @@ public class JavaMethodParser implements MethodParser {
 
     private String concatComments(List<Comment> comments) {
         String com = "";
-        for (Comment c: comments) {
+        for (Comment c : comments) {
             com += "/*" + c.getContent() + "*/";
         }
         return com;
