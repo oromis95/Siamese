@@ -29,6 +29,7 @@ public class JavaMethodParser implements MethodParser {
     private static String JAVA_CLASS = "";
     private boolean isPrint;
     private String license = "none";
+    private boolean methodFilter = false;
 
     public JavaMethodParser() {
         super();
@@ -40,6 +41,7 @@ public class JavaMethodParser implements MethodParser {
         PREFIX_TO_REMOVE = prefixToRemove;
         MODE = mode;
         this.isPrint = isPrint;
+        this.methodFilter = Settings.MethodParserType.MethodFilter;
     }
 
     @Override
@@ -100,7 +102,7 @@ public class JavaMethodParser implements MethodParser {
                             JAVA_CLASS = classDec.getName().asString();
                         }
                     }
-
+                    List params = new ArrayList();
                     new MethodVisitor().visit(cu, FILE_PATH);
                     new ConstructorVisitor().visit(cu, null);
 
@@ -183,38 +185,41 @@ public class JavaMethodParser implements MethodParser {
             int end = -1;
             if (n.getBegin().isPresent()) begin = n.getBegin().get().line;
             if (n.getEnd().isPresent()) end = n.getEnd().get().line;
-            if (filterMethod(n.getName().asString()),arg){
-                System.out.println("UAAA FUNZIONA!");
-                methodList.add(createNewMethod(n.getName().asString(), comment, n.toString(ppc), begin,
-                        end, paramsList, n.getDeclarationAsString()));
+            if (Settings.MethodParserType.MethodFilter) {
+                if (filterMethod(n.getDeclarationAsString(), String.valueOf(arg))) {
+                    methodList.add(createNewMethod(n.getName().asString(), comment, n.toString(ppc), begin,
+                            end, paramsList, n.getDeclarationAsString()));
+                } else {
+                    methodList.add(createNewMethod(n.getName().asString(), comment, n.toString(ppc), begin,
+                            end, paramsList, n.getDeclarationAsString()));
+                }
             }
-            System.out.println("ALMENO NON CRASHA");
             super.visit(n, arg);
         }
-    }
 
-
-    private boolean filterMethod(String functionName, String path) {
-        path = path.replace(".java", ".txt");
-        File f = new File(path);
-        if (f.exists() && !f.isDirectory()) {
-            try {
-                Scanner sc = new Scanner(f);
-                while (sc.hasNextLine()) {
-                    line = sc.nextLine();
-                    if (functionName.equals(line)) {
-                        System.out.println("QUESTI COMBACIANO " + functionName + line);
-                        return true;
-                    } else {
-                        return true;
+        private boolean filterMethod(String functionName, String path) {
+            functionName += JAVA_CLASS + "." + functionName;
+            path = path.replace(".java", ".txt");
+            File f = new File(path);
+            if (f.exists() && !f.isDirectory()) {
+                try {
+                    Scanner sc = new Scanner(f);
+                    while (sc.hasNextLine()) {
+                        String line = sc.nextLine();
+                        if (functionName.equals(line)) {
+                            return true;
+                        } else {
+                            return true;
+                        }
                     }
+                } catch (FileNotFoundException exception) {
+                    return false;
                 }
-            } catch (FileNotFoundException exception) {
-                return false;
             }
+            return false;
         }
-        return false;
     }
+
 
     /***
      * Extract constructors

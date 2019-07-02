@@ -5,6 +5,7 @@ public class Settings {
 	public static class MethodParserType {
 		public static String METHOD = "METHOD-LEVEL";
 		public static String FILE = "FILE-LEVEL";
+		public static boolean MethodFilter=false;
 	}
 
     public static class ErrorMeasure {

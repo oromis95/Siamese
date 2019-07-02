@@ -123,6 +123,7 @@ public class Siamese {
     private boolean github = false;
     private boolean ignoreQueryClones = false;
     private IndexReader esIndexRader;
+    private boolean methodFilter = false;
 
     public Siamese(String configFile) {
         readFromConfigFile(configFile);
@@ -139,6 +140,10 @@ public class Siamese {
             setOutputFolder(overridingParams[1]);
         if (!overridingParams[2].isEmpty()) // command
             setCommand(overridingParams[2]);
+        if (overridingParams.length > 3) {
+            if (!overridingParams[3].isEmpty()) // command
+                setMethods();
+        }
         printConfig();
         prepareTokenizers();
     }
@@ -174,7 +179,7 @@ public class Siamese {
             isDFS = Boolean.parseBoolean(prop.getProperty("dfs"));
             writeToFile = Boolean.parseBoolean(prop.getProperty("writeToFile"));
             extension = prop.getProperty("extension");
-            minCloneLine=Integer.parseInt(prop.getProperty("minCloneSize"));
+            minCloneLine = Integer.parseInt(prop.getProperty("minCloneSize"));
             command = prop.getProperty("command");
 
             String ranking = prop.getProperty("rankingFunction");
@@ -288,7 +293,7 @@ public class Siamese {
         System.out.println("indexingMode   : " + indexingMode + " (" + bulkSize + ")");
         System.out.println("outputFormat   : " + outputFormat);
         System.out.println("---------- MULTI-REPRESENTATION ----");
-        System.out.println("multiRep       : " + multiRep + " " +  Arrays.toString(enableRep));
+        System.out.println("multiRep       : " + multiRep + " " + Arrays.toString(enableRep));
         System.out.println("T2 norm        : " + t2NormMode);
         System.out.println("T3 norm        : " + t3NormMode);
         System.out.println("ngramSize      : t1=" + t1NgramSize + " t2=" + t2NgramSize + " t3=" + ngramSize);
@@ -301,7 +306,7 @@ public class Siamese {
         System.out.println("---------- SIMILARITY --------------");
         System.out.println("computeSimilarity : " + computeSimilarity);
         System.out.println("simThreshold      : " + simThreshold[0] + "," + simThreshold[1] + ","
-                                                  + simThreshold[2] + "," + simThreshold[3]);
+                + simThreshold[2] + "," + simThreshold[3]);
         System.out.println("====================================");
     }
 
@@ -395,7 +400,7 @@ public class Siamese {
             indexSettings = IndexSettings.BM25.getDefaultIndexSettings();
             mappingStr = IndexSettings.BM25.mappingStr;
         } else if (rankingFunc == Settings.RankingFunction.DFR) {
-             indexSettings = IndexSettings.DFR.getIndexSettings(
+            indexSettings = IndexSettings.DFR.getIndexSettings(
                     IndexSettings.DFR.bmIF,
                     IndexSettings.DFR.aeL,
                     IndexSettings.DFR.normH1);
@@ -838,10 +843,10 @@ public class Siamese {
                                     // TODO: only for the thesis, put this back after the experiment.
                                     int[][] sim = computeSimilarity(origQuery, t1Query, t2Query, t3Query, results);
                                     outToFile.append(formatter.format(results, sim, this.simThreshold,
-                                                                      prefixToRemove, ignoreQueryClones, q, queryText));
+                                            prefixToRemove, ignoreQueryClones, q, queryText));
                                 } else {
                                     outToFile.append(formatter.format(results, prefixToRemove,
-                                                                      ignoreQueryClones, q, queryText));
+                                            ignoreQueryClones, q, queryText));
                                 }
                                 search++;
                             } else {
@@ -893,6 +898,7 @@ public class Siamese {
 
     /**
      * Compute similarity between query and results using fuzzywuzzy string matching
+     *
      * @param query the f0 code query (original)
      * @return a 2D array of similarity values
      */
@@ -902,14 +908,15 @@ public class Siamese {
             Document d = results.get(i);
             int sim0 = FuzzySearch.tokenSetRatio(query, d.getTokenizedSource());
             // compute an average similarity of the four representations
-            simResults[i]=sim0;
+            simResults[i] = sim0;
         }
         return simResults;
     }
 
     /**
      * Compute similarity between query and results using fuzzywuzzy string matching
-     * @param query the f0 code query (original)
+     *
+     * @param query   the f0 code query (original)
      * @param t1Query the f1 code query
      * @param t2Query the f2 code query
      * @param t3Query the f3 code query
@@ -917,8 +924,8 @@ public class Siamese {
      * @return a 2D array of similarity values
      */
     private int[][] computeSimilarity(String query,
-                                    String t1Query, String t2Query, String t3Query,
-                                    ArrayList<Document> results) {
+                                      String t1Query, String t2Query, String t3Query,
+                                      ArrayList<Document> results) {
         int[][] simResults = new int[results.size()][4]; // 2D sim array of four representations
         for (int i = 0; i < results.size(); i++) {
             Document d = results.get(i);
@@ -927,7 +934,7 @@ public class Siamese {
             int sim2 = FuzzySearch.tokenSetRatio(t2Query, d.getT2Source());
             int sim3 = FuzzySearch.tokenSetRatio(t3Query, d.getSource());
             // compute an average similarity of the four representations
-            int[] sims = { sim0, sim1, sim2, sim3 };
+            int[] sims = {sim0, sim1, sim2, sim3};
             simResults[i] = sims;
         }
         return simResults;
@@ -935,6 +942,7 @@ public class Siamese {
 
     /**
      * Reduce number of tokens in the query
+     *
      * @param query the query
      * @param field index field to analyse
      * @param limit the maximum number of terms in the reduced query
@@ -945,7 +953,7 @@ public class Siamese {
         // clear the query
         StringJoiner queryStr = new StringJoiner(" ");
         ArrayList<JavaTerm> sortedTerms = sortTermsByFreq(index, field, query);
-        for (JavaTerm sortedTerm: sortedTerms) {
+        for (JavaTerm sortedTerm : sortedTerms) {
             if (sortedTerm.getFreq() <= limit) {
                 queryStr.add(sortedTerm.getTerm());
             }
@@ -1040,6 +1048,7 @@ public class Siamese {
 
     /**
      * Read the ES index file
+     *
      * @param indexName the name of the index
      */
     private void readESIndex(String indexName) {
@@ -1061,7 +1070,7 @@ public class Siamese {
     private ArrayList<JavaTerm> sortTermsByFreq(String indexName, String field, ArrayList<String> terms) {
         ArrayList<JavaTerm> selectedTermsArray = new ArrayList<>();
         try {
-            for (String term: terms) {
+            for (String term : terms) {
                 // TODO: get rid of the blank term (why it's blank?)
                 if (!term.isEmpty()) {
                     Term t = new Term(field, term);
@@ -1122,13 +1131,13 @@ public class Siamese {
 
     private String escapeString(String input) {
         return input.replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("/", "\\/")
-                    .replace("\b", "\\b")
-                    .replace("\f", "\\f")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\r")
-                    .replace("\t", "\\t");
+                .replace("\"", "\\\"")
+                .replace("/", "\\/")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     private MethodParser initialiseMethodParser(String filePath, String prefixToRemove, String mode, boolean isPrint) {
@@ -1137,7 +1146,7 @@ public class Siamese {
             Class cl = Class.forName(this.methodParserName);
             parser = (MethodParser) cl.newInstance();
             parser.configure(filePath, prefixToRemove, mode, isPrint);
-        } catch (ClassNotFoundException|IllegalAccessException|InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             System.out.println("ERROR: could not find the specified method parser: " +
                     this.methodParserName + ". Please check if the class and package name is correct.");
         }
@@ -1150,7 +1159,7 @@ public class Siamese {
             Class cl = Class.forName(this.tokenizerName);
             tokenizer = (Tokenizer) cl.newInstance();
             tokenizer.configure(normalizer);
-        } catch (ClassNotFoundException|IllegalAccessException|InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             System.out.println("ERROR: could not find the specified tokenizer: " +
                     this.tokenizerName + ". Please check if the class and package name is correct.");
         }
@@ -1163,7 +1172,7 @@ public class Siamese {
             Class cl = Class.forName(this.normalizerName);
             normalizer = (Normalizer) cl.newInstance();
             normalizer.configure(modes);
-        } catch (ClassNotFoundException|IllegalAccessException|InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             System.out.println("ERROR: could not find the specified normalizer: " +
                     this.normalizerName + ". Please check if the class and package name is correct.");
         }
@@ -1175,7 +1184,7 @@ public class Siamese {
         try {
             Class cl = Class.forName(this.normalizerModeName);
             normalizerMode = (NormalizerMode) cl.newInstance();
-        } catch (ClassNotFoundException|IllegalAccessException|InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             System.out.println("ERROR: could not find the specified normalizer mode: " +
                     this.normalizerModeName + ". Please check if the class and package name is correct.");
         }
@@ -1188,7 +1197,7 @@ public class Siamese {
             Class cl = Class.forName(this.normalizerModeName);
             normalizerMode = (NormalizerMode) cl.newInstance();
             normalizerMode.configure(normOptions);
-        } catch (ClassNotFoundException|IllegalAccessException|InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             System.out.println("ERROR: could not find the specified normalizer mode: " +
                     this.normalizerModeName + ". Please check if the class and package name is correct.");
         }
@@ -1234,7 +1243,7 @@ public class Siamese {
 
     private void genGitHubInfo() {
         String[] inputPath = this.inputFolder.split("/");
-        String projName = inputPath[inputPath.length-2] + "/" + inputPath[inputPath.length-1];
+        String projName = inputPath[inputPath.length - 2] + "/" + inputPath[inputPath.length - 1];
         this.url = "https://github.com/" + projName + "/blob/master";
     }
 
@@ -1264,5 +1273,9 @@ public class Siamese {
 
     public void setCommand(String command) {
         this.command = command;
+    }
+
+    public void setMethods() {
+        Settings.MethodParserType.MethodFilter = true;
     }
 }

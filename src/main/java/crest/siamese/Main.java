@@ -48,7 +48,7 @@ public class Main {
      * @return an 3-dim array of overriding parameters [input, output, command]
      */
     private static String[] processCommandLine(String[] args) {
-        String[] overridingParams = {"", "", ""};
+        String[] overridingParams = {"", "", "", ""};
         // create the command line parser
         CommandLineParser parser = new DefaultParser();
         Option configOption = new Option("cf", "configFile", true,
@@ -98,7 +98,7 @@ public class Main {
                 overridingParams[2] = line.getOptionValue("c");
             }
             if (line.hasOption("m")) {
-                overridingParams[3] = line.getOptionValue("m");
+                overridingParams[3] = String.valueOf(true);
             }
         } catch (ParseException exp) {
             showHelp();

@@ -24,22 +24,22 @@ import java.util.List;
  */
 /* TODO: outdated (remove?) */
 public class SiameseIndexReader {
-    private static String[] extensions = { "java" };
+    private static String[] extensions = {"java"};
     private static NormalizerMode modes = new JavaNormalizerMode();
     private static IndexReader reader = null;
     private static nGramGenerator ngen;
 
     public static void main(String[] args) {
-         // testIdfRetrieval();
+        // testIdfRetrieval();
 
         String indexName = "tfidf_sw_1";
         // initialise the n-gram generator
         ngen = new nGramGenerator(1);
 
         // directory where your index is stored
-        String indexFile =  "/Users/Chaiyong/elasticsearch-2.2.0/data/stackoverflow/nodes/0/indices/"
+        String indexFile = "/Users/Chaiyong/elasticsearch-2.2.0/data/stackoverflow/nodes/0/indices/"
                 + indexName + "/0/index";
-        char[] normMode = { 's', 'w' };
+        char[] normMode = {'s', 'w'};
 
         try {
             reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexFile)));
@@ -71,7 +71,7 @@ public class SiameseIndexReader {
                     Experiment.prefixToRemove,
                     Settings.MethodParserType.METHOD,
                     false
-                    );
+            );
             ArrayList<Method> methodList;
             String query = "";
 
@@ -131,12 +131,12 @@ public class SiameseIndexReader {
                     }
                 }
             }
-        } catch(IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-        selectedTerms = "\"" + firstMinTerm.getTerm().replace("\"","&quot;") + "\"," + firstMinTerm.getFrequency() +
-                ",\"" + secondMinTerm.getTerm().replace("\"","&quot;") + "\"," + secondMinTerm.getFrequency() +
-                ",\"" + thirdMinTerm.getTerm().replace("\"","&quot;") + "\"," + thirdMinTerm.getFrequency();
+        selectedTerms = "\"" + firstMinTerm.getTerm().replace("\"", "&quot;") + "\"," + firstMinTerm.getFrequency() +
+                ",\"" + secondMinTerm.getTerm().replace("\"", "&quot;") + "\"," + secondMinTerm.getFrequency() +
+                ",\"" + thirdMinTerm.getTerm().replace("\"", "&quot;") + "\"," + thirdMinTerm.getFrequency();
 
         return selectedTerms;
     }
